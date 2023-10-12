@@ -4,8 +4,14 @@ import base64
 import textwrap
 import json
 import requests
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import time
+from bs4 import BeautifulSoup
+import pandas as pd
 
-openai.api_key = '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'
+
+openai.api_key = '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'
 
 def get_completion(prompt, model="gpt-3.5-turbo"):
     messages = [{"role": "user", "content": prompt}]
@@ -17,7 +23,7 @@ def get_completion(prompt, model="gpt-3.5-turbo"):
     return response.choices[0].message["content"]
 
 def generate_company_compliment(company_name, company_description): 
-    prompt = """ 
+    prompt = f"""
     Please write me a two sentence compliment for the company {company_name} with the 
     following description: {company_description}
     """
@@ -40,26 +46,59 @@ def generate_template(sender_name, job_title, company_name, company_description,
     """
     return email_template
 
-def create_emails(): 
+def get_company_description(driver, url): 
+    driver.get(url) # this will open the link
+    src = driver.page_source
+    # Now using beautiful soup
+    soup = BeautifulSoup(src, 'lxml')
+    overview = soup.find('p', {'class': 'break-words white-space-pre-wrap t-black--light text-body-medium'})
+    text = overview.get_text()
+    company_description = text.strip()
+    return company_description
+
+def create_emails(sender_name, job_title, csv_file, driver): 
     # run through CSV file and generate emails for each company, write those responses back to the CSV
+    results = {}
+    df = pd.read_csv(csv_file)
+    profiles = df["LinkedIn"].tolist()
+    company_names = df["Company Name"].tolist()
+    for i,item in enumerate(profiles): 
+        # Get company description 
+        driver.get(item)
+        src = driver.page_source
+        soup = BeautifulSoup(src, 'lxml')
+        overview = soup.find('p', {'class': 'break-words white-space-pre-wrap t-black--light text-body-medium'})
+        text = overview.get_text()
+        company_description = text.strip()
+
+        results[company_names[i]] = {"Overview": company_description, "Email": generate_template(sender_name, job_title, company_names[i], company_description)}
+        time.sleep(10)
+    return results
+
+
 
     return
 
 if __name__ == '__main__':
     name = input("Name: ")
     position = input("Job Title: ")
-    company_name = 'Prints of Love'
-    company_description = """ We print what matters most: wedding related designs, pregnancy/birth announcements, and holiday cards. 
-    Via our ridiculously easy to use upload and print site, we provide professionally printed products delivered quickly, on budget, and without hassle. 
-    By collaborating directly with independent graphic designers, we have created a more friendly and efficient printing marketplace.
-    
-    Doing What’s Right 
-    Prints of Love is committed to operating sustainably and responsibly. We are accountable for the impact we have on this planet and the people that live in it.  
-    As a certified Reforestation Partner of One Tree Planted, a tree is planted for every print order.  
-    Also, recycled paper and vegetable-based inks are quickly being phased into our printing practices."""
+    excel_file = input("CSV File: ")
 
-    print(name)
-    print(position)
+    driver = webdriver.Chrome()
+ 
+    # Logging into LinkedIn
+    driver.get("https://linkedin.com/uas/login")
+    time.sleep(5)
     
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(generate_template(name, position, company_name, company_description))
+    username = driver.find_element(By.ID, "username")
+    username.send_keys("derek.wu@stern.nyu.edu")  # Enter Your Email Address
+    
+    pword = driver.find_element(By.ID, "password")
+    pword.send_keys("dere1216")        # Enter Your Password
+    
+    driver.find_element(By.XPATH, "//button[@type='submit']").click()
+
+    email_templates = pd.DataFrame.from_dict(create_emails(name, position, excel_file, driver))
+    email_templates.T.to_csv('emails.csv')
+
+    
