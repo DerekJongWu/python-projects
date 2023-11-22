@@ -1,9 +1,4 @@
 import openai   
-import pprint
-import base64
-import textwrap
-import json
-import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
@@ -30,10 +25,10 @@ def generate_company_compliment(company_name, company_description):
     return get_completion(prompt)
 
 def generate_growth_ideas(): 
-
+    ### Opportunity to add GothamAPI 
     return
 
-def generate_template(sender_name, job_title, company_name, company_description, ceo_name = 'Andy Breen' ):
+def generate_template(sender_name, job_title, company_name, company_description, ceo_name):
     # maybe use json to store sender_name and job_title
     company_compliment = generate_company_compliment(company_name, company_description)
     email_template =  f""" 
@@ -43,6 +38,16 @@ def generate_template(sender_name, job_title, company_name, company_description,
     to discuss the possitibility of purchasing an ownership stake in your company. 
 
     {company_compliment}
+
+    Why the Buy Build Fund?
+        * We represent a network of family offices, comprising multi-billion dollars in assets that invests in companies with industry changing ideas. 
+        * Focused and straightforward transaction process. LOI to close in 60-90 days. 
+        * We provide flexibility to craft win-win situations with sellers looking to transition a business to a "safe pair of hands"
+        * We have founded, owned, and run small businesses ourselves, and we have a strong track record of as a founder-friendly business. 
+        * Proven track record of investing in fast-growing companies such as Seamless, Revel, and Bentobox. 
+
+    Let me know if you have time for a 30 min preliminary call or if this is not a good time, just let us know.
+
     """
     return email_template
 
@@ -52,7 +57,10 @@ def get_company_description(driver, url):
     # Now using beautiful soup
     soup = BeautifulSoup(src, 'lxml')
     overview = soup.find('p', {'class': 'break-words white-space-pre-wrap t-black--light text-body-medium'})
-    text = overview.get_text()
+    try:
+        text = overview.get_text()
+    except: 
+        return " "
     company_description = text.strip()
     return company_description
 
@@ -62,7 +70,9 @@ def create_emails(sender_name, job_title, csv_file, driver):
     df = pd.read_csv(csv_file)
     profiles = df["LinkedIn"].tolist()
     company_names = df["Company Name"].tolist()
+    ceos = df['CEO'].tolist()
     for i,item in enumerate(profiles): 
+        print(item)
         # Get company description 
         driver.get(item)
         src = driver.page_source
@@ -70,14 +80,9 @@ def create_emails(sender_name, job_title, csv_file, driver):
         overview = soup.find('p', {'class': 'break-words white-space-pre-wrap t-black--light text-body-medium'})
         text = overview.get_text()
         company_description = text.strip()
-
-        results[company_names[i]] = {"Overview": company_description, "Email": generate_template(sender_name, job_title, company_names[i], company_description)}
+        results[company_names[i]] = {"Overview": company_description, "Email": generate_template(sender_name, job_title, company_names[i], company_description, ceos[i])}
         time.sleep(10)
     return results
-
-
-
-    return
 
 if __name__ == '__main__':
     name = input("Name: ")
