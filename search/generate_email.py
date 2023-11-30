@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 
 
-openai.api_key = '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'
+openai.api_key = ''
 
 def get_completion(prompt, model="gpt-3.5-turbo"):
     messages = [{"role": "user", "content": prompt}]
@@ -70,6 +70,7 @@ def create_emails(sender_name, job_title, csv_file, driver):
     df = pd.read_csv(csv_file)
     profiles = df["LinkedIn"].tolist()
     company_names = df["Company Name"].tolist()
+    email_addresses = df['EmailAddress'].tolist()
     ceos = df['CEO'].tolist()
     for i,item in enumerate(profiles): 
         print(item)
@@ -80,7 +81,9 @@ def create_emails(sender_name, job_title, csv_file, driver):
         overview = soup.find('p', {'class': 'break-words white-space-pre-wrap t-black--light text-body-medium'})
         text = overview.get_text()
         company_description = text.strip()
-        results[company_names[i]] = {"Overview": company_description, "Email": generate_template(sender_name, job_title, company_names[i], company_description, ceos[i])}
+        results[company_names[i]] = {"Overview": company_description, 
+                                     "Email": generate_template(sender_name, job_title, company_names[i], company_description, ceos[i]),
+                                     'EmailAddress': email_addresses[i]}
         time.sleep(10)
     return results
 
