@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 
 
-openai.api_key = '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'
+openai.api_key = ''
 
 def get_completion(prompt, model="gpt-3.5-turbo"):
     messages = [{"role": "user", "content": prompt}]
