@@ -1,3 +1,5 @@
 *.ipynb_checkpoints
 *.csv
 *.DS_Store
+*/chromedriver_mac64/
+*.xlsx
