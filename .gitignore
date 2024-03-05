@@ -3,3 +3,4 @@
 *.DS_Store
 */chromedriver_mac64/
 *.xlsx
+*.pdf
